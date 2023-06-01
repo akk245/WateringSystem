@@ -9,12 +9,12 @@
 
 enum MessageID{ADD_MESSAGE,DELETE_MESSAGE};
 
-QueueHandle_t MessageQueue;
+extern QueueHandle_t MessageQueue;
 
 struct windowMessage
 {
     char messageID; 
-    char data[20];
+    char data[32];
 };
 
 struct addMessageData

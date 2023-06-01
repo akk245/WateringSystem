@@ -8,6 +8,8 @@
 #define MAX_NUM_WINDOWS 10
 #define PUMP_RELAY_GPIO 23
 
+QueueHandle_t MessageQueue;
+
 bool processAddMessage(Node **head, char *data, char *numWindows);
 bool processDeleteMessage(Node **head, char* data, char *numWindows);
 void runPumpStateMachine(Node **head);
@@ -19,7 +21,7 @@ void initWindowManager (void)
     MessageQueue = xQueueCreate(10,sizeof(struct windowMessage));
     
     // setup GPIO for output
-    gpio_pad_select_gpio(PUMP_RELAY_GPIO);
+    esp_rom_gpio_pad_select_gpio(PUMP_RELAY_GPIO);
     gpio_set_direction(PUMP_RELAY_GPIO, GPIO_MODE_OUTPUT);
     
     time_t rawtime;
@@ -66,7 +68,7 @@ bool processAddMessage(Node **head, char *data, char *numWindows)
 
     if(push(head, startTime, endTime, repeating))
     {
-        printf("start time: %li\n", startTime);
+        printf("start time: %lli\n", startTime);
         ++(*numWindows);
         ESP_LOGI("WdwMgr","Add Succeded");
         return true;
