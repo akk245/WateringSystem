@@ -1,3 +1,4 @@
 idf_component_register(SRCS "WindowManager.c"
                     INCLUDE_DIRS "."
-                    PRIV_REQUIRES PriorityQueue)
+                    PRIV_REQUIRES PriorityQueue
+                    REQUIRES driver)
