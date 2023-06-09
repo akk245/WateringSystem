@@ -7,7 +7,7 @@
 #include "esp_log.h"
 
 #define TASK_1000_MS_STACK_SIZE 4096
-#define TASK_1000_MS_PRIORITY 5
+#define TASK_1000_MS_PRIORITY 3
 #define INCLUDE_xTaskDelayUntil 1
 
 TaskHandle_t Task1000msHandle;

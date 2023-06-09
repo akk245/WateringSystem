@@ -4,8 +4,8 @@
 #include "driver/gpio.h"
 #include "sdkconfig.h"
 #include "Task1000ms.h"
+#include "Task50ms.h"
 #include "Task10ms.h"
-#include "WindowManager.h"
 #include "ButtonManager.h"
 
 #define BLINK_GPIO 5
@@ -22,15 +22,21 @@ void app_main(void)
     gpio_config(&BLINK_GPIO_config);
 
     init1000msTask();
+    init50msTask();
     init10msTask();
+
     /*
     while(1) {
+        static uint8_t counter = 0;
         if(down_button_flag)
         {
             gpio_set_level(BLINK_GPIO,1);
             down_button_flag = false;
+            writeStr("12:21 8478775000", 0, counter, 0);
+            counter++;
         }
-        vTaskDelay(200 / portTICK_PERIOD_MS);
+        runScreenManager();
+        vTaskDelay(50 / portTICK_PERIOD_MS);
         gpio_set_level(BLINK_GPIO,0);
     }
     */
