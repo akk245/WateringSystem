@@ -68,12 +68,12 @@ bool processAddMessage(Node **head, char *data, char *numWindows)
 
     if(push(head, startTime, endTime, repeating))
     {
-        printf("start time: %lli\n", startTime);
+        //printf("start time: %lli\n", startTime);
         ++(*numWindows);
-        ESP_LOGI("WdwMgr","Add Succeded");
+        ESP_LOGI("WdwMgr","Adding... Start: %lli End: %lli", startTime, endTime);
         return true;
     }
-    ESP_LOGI("WdwMgr","Add Failed: window overlap");
+    ESP_LOGI("WdwMgr","Add Failed");
     return false;
 }
 

@@ -1,9 +1,10 @@
 #include "buttonManager.h"
 #include "driver/gpio.h"
+#include "esp_log.h"
 
-#define UP_GPIO 18
-#define DOWN_GPIO 13
-#define ENTER_GPIO 12
+#define UP_GPIO 32
+#define DOWN_GPIO 22
+#define ENTER_GPIO 26
 
 bool up_button_flag = false;
 bool down_button_flag = false;
@@ -36,6 +37,7 @@ void executeButtonManager(void)
         // we have a change of state
         if(currentUpState)
         {
+            ESP_LOGI("ButtonMgr","Up Rising Edge");
             // rising edge
             up_button_flag = true;
         }
@@ -46,7 +48,9 @@ void executeButtonManager(void)
     {
         // we have a change of state
         if (currentDownState)
+        
         {
+            ESP_LOGI("ButtonMgr","Down Rising Edge");
             // rising edge
             down_button_flag = true;
         }
@@ -58,6 +62,7 @@ void executeButtonManager(void)
         // we have a change of state
         if (currentEnterState)
         {
+            ESP_LOGI("ButtonMgr","Enter Rising Edge");
             // rising edge
             enter_button_flag = true;
         }

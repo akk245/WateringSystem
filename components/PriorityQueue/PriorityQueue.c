@@ -1,6 +1,12 @@
 #include "PriorityQueue.h"
 
 bool push(Node** head, time_t startTime, time_t endTime, bool repeating){
+    
+    if (endTime <= startTime)
+    {
+        return false;
+    }
+
     // if queue is empty place first node
     if (*head == NULL){
         Node* tmp = createNewNode(startTime,endTime,repeating);

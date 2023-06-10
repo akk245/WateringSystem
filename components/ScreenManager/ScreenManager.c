@@ -26,6 +26,9 @@ void writeLetter(char alpgaIn, uint8_t col, uint8_t line, bool invertedColor);
 void write8x8bitmap(uint8_t * bitMap, uint8_t col, uint8_t line, bool invertedColor);
 void processPrintStrMessage(char * data);
 void processClearRowMessage(char * data);
+void writeStr(char * strIn, uint8_t startingCol, uint8_t line, bool invertedColor);
+void writeChar(char charIn, uint8_t col, uint8_t line, bool invertedColor);
+void clearLine(uint8_t line);
 
 void initScreenManager(void)
 {
@@ -33,7 +36,7 @@ void initScreenManager(void)
     HAL_init();
 
     // create message queue
-    ScreenMessageQueue = xQueueCreate(10,sizeof(struct ScreenMessage));
+    ScreenMessageQueue = xQueueCreate(20,sizeof(struct ScreenMessage));
 
     // clear screen by clearing frame buffer
     memset(frameBuffer, 0, sizeof(frameBuffer));
@@ -47,7 +50,7 @@ void runScreenManager(void)
     struct ScreenMessage recievedMessage;
     while(xQueueReceive(ScreenMessageQueue, &recievedMessage, 0))
     {
-        ESP_LOGI("ScreenMgr","Recvd Msg");
+        //ESP_LOGI("ScreenMgr","Recvd Msg");
         // process messages
         if(recievedMessage.messageID == PRINT_STR)
         {

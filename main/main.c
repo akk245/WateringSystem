@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <time.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/gpio.h"
@@ -21,6 +22,9 @@ void app_main(void)
 
     gpio_config(&BLINK_GPIO_config);
 
+    //setenv("TZ", "CST-7", 1);
+    //tzset();
+    
     init1000msTask();
     init50msTask();
     init10msTask();
