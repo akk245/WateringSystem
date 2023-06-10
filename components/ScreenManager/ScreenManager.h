@@ -34,8 +34,5 @@ struct ClearRowData
 
 void initScreenManager(void);
 void runScreenManager(void);
-void writeStr(char * strIn, uint8_t startingCol, uint8_t line, bool invertedColor);
-void writeChar(char charIn, uint8_t col, uint8_t line, bool invertedColor);
-void clearLine(uint8_t line);
 
 #endif // SCREEN_MANAGER_H

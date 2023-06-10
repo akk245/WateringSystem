@@ -1,6 +1,7 @@
 #include "Task50ms.h"
 #include <string.h>
 #include "ScreenManager.h"
+#include "MenuManager.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -15,6 +16,7 @@ void Task50msCode(void);
 void init50msTask(void)
 {
     initScreenManager();
+    initMenuManager();
 
     // Add a test message to the queue
     struct PrintStrData printStrData;
@@ -39,7 +41,7 @@ void init50msTask(void)
 
 void Task50msCode(void) {
     TickType_t lastWakeTime;
-    const TickType_t taskFrequency = 50 / portTICK_PERIOD_MS;
+    const TickType_t taskFrequency = 100 / portTICK_PERIOD_MS;
     
     lastWakeTime = xTaskGetTickCount();
     while(1)
@@ -48,6 +50,7 @@ void Task50msCode(void) {
         // we will use xTaskDelayUntil's return to see if we are overruning
         vTaskDelayUntil(&lastWakeTime, taskFrequency);
         
+        runMenuManager();
         runScreenManager();
     }
 }
