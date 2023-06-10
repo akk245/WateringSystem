@@ -195,7 +195,10 @@ void runInitAdd(void)
 {
 
     ESP_LOGI("MenuMgr","Init ADD Page");
-    // TODO clear screen
+    for (uint8_t i = 0; i < 7; i++)
+    {
+        SendClearMessage(i);
+    }
     initGetTimeStateMachine();
     menuState = ADD_START;
 }

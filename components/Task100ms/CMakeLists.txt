@@ -1,3 +1,3 @@
-idf_component_register(SRCS "Task50ms.c"
+idf_component_register(SRCS "Task100ms.c"
                     INCLUDE_DIRS "."
                     PRIV_REQUIRES ScreenManager MenuManager)

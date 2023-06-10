@@ -26,7 +26,7 @@ void app_main(void)
     //tzset();
     
     init1000msTask();
-    init50msTask();
+    init100msTask();
     init10msTask();
 
     /*

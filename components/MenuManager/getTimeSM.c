@@ -6,7 +6,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#define BLINK_PERIOD_IN_DISPATCH 20
+#define BLINK_PERIOD_IN_DISPATCH 10
 
 typedef enum {NO_UNIT, HOUR_UNIT, MINUTE_UNIT, SECOND_UNIT} timeUnit_t;
 static uint8_t blinkDispatchCounter;
@@ -128,7 +128,7 @@ void blinkCurrentTimeSelection(timeUnit_t timeUnitToBlink)
 {
 
     ESP_LOGI("GetTimeSM", "binkDisplatchCounter: %i", blinkDispatchCounter);
-    if (blinkDispatchCounter > (BLINK_PERIOD_IN_DISPATCH / 2))
+    if (blinkDispatchCounter > (BLINK_PERIOD_IN_DISPATCH * 3 / 4))
     {
 
         ESP_LOGI("GetTimeSM", "Masking");
