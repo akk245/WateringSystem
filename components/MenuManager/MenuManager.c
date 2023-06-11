@@ -10,9 +10,20 @@
 #include <stdint.h>
 
 // TODO - add init states for other menus, then update exit table from main
-typedef enum {INIT_MAIN, MAIN, INIT_ADD, ADD_START, ADD_END, DELETE, VIEW, SET_TIME} MenuState_t;
+typedef enum {
+    INIT_MAIN,
+    MAIN,
+    ADD_INIT,
+    ADD_START,
+    ADD_END,
+    DELETE_INIT,
+    DELETE_START,
+    DELETE_END,
+    VIEW,
+    SET_TIME} MenuState_t;
 
 static MenuState_t menuState;
+static uint8_t currentSelection;
 
 static uint8_t addWindowStartHour;
 static uint8_t addWindowStartMin;
@@ -41,10 +52,21 @@ void initMenuStateMachine(void);
 void runMenuStateMachine(void);
 void runInitMain(void);
 void runMain(void);
-void runInitAdd(void);
+void runAddInit(void);
 void runAddStart(void);
 void runAddEnd(void);
+void runDeleteInit(void);
+void runDeleteStart(void);
+void runDeleteEnd(void);
 void SendAddWindowMessage(
+    uint8_t hourStart,
+    uint8_t minuteStart,
+    uint8_t secondStart,
+    uint8_t hourEnd,
+    uint8_t minuteEnd,
+    uint8_t secondEnd
+);
+void sendDeleteWindowMessage(
     uint8_t hourStart,
     uint8_t minuteStart,
     uint8_t secondStart,
@@ -72,8 +94,8 @@ void initMenuStateMachine()
             {"Set Clock", 0, 3}
         },
         .Exits = {
-            INIT_ADD,
-            DELETE,
+            ADD_INIT,
+            DELETE_INIT,
             VIEW,
             SET_TIME
         }
@@ -107,15 +129,22 @@ void runMenuStateMachine(void)
         case MAIN:
             runMain();
             break;
-        case INIT_ADD:
-            runInitAdd();
+        case ADD_INIT:
+            runAddInit();
         case ADD_START:
             runAddStart();
             break;
         case ADD_END:
             runAddEnd();
             break;
-        case DELETE:
+        case DELETE_INIT:
+            runDeleteInit();
+            break;
+        case DELETE_START:
+            runDeleteStart();
+            break;
+        case DELETE_END:
+            runDeleteEnd();
             break;
         case VIEW:
             break;
@@ -129,9 +158,17 @@ void runMenuStateMachine(void)
 void runInitMain(void)
 {
     ESP_LOGI("MenuMgr","Init Main Menu");
+    
+    currentSelection = 0;
+    
+    // clear screen body
+    for (uint8_t line = 0; line < 7; line++)
+    {
+        SendClearMessage(line);
+    }
+
     // printout default selection with inverted colors
-    Selection_t * pTmpSel = &MainPage.Selections[0];
-    SendClearMessage(0);
+    Selection_t * pTmpSel = &MainPage.Selections[0];    
     SendPrintMessage(pTmpSel->str, pTmpSel->startingCol, pTmpSel->line, 1);
     
     // printout other selections
@@ -148,8 +185,6 @@ void runInitMain(void)
 
 void runMain(void)
 {
-    static uint8_t currentSelection = 0;
-
     if (enter_button_flag)
     {
         enter_button_flag = 0;
@@ -191,7 +226,7 @@ void runMain(void)
     //ESP_LOGI("MenuManager","Main Menu Selection: %i", currentSelection);
 }
 
-void runInitAdd(void)
+void runAddInit(void)
 {
 
     ESP_LOGI("MenuMgr","Init ADD Page");
@@ -200,7 +235,9 @@ void runInitAdd(void)
         SendClearMessage(i);
     }
     initGetTimeStateMachine();
-    SendPrintMessage("Set Window Start", 0, 1 ,0);
+    SendPrintMessage("Add New Window", 0, 0 ,0);
+
+    SendPrintMessage("Set Window Start", 0, 2 ,0);
     menuState = ADD_START;
 }
 
@@ -216,7 +253,7 @@ void runAddStart(void)
 
         // prompt for window start time to screen
         SendClearMessage(1);
-        SendPrintMessage("Set Window End", 0, 1 ,0);
+        SendPrintMessage("Set Window End", 0, 2 ,0);
 
         // re-init get time state machine for getting window end time
         initGetTimeStateMachine();
@@ -226,12 +263,69 @@ void runAddStart(void)
 
 void runAddEnd(void)
 {
-
     runGetTimeStateMachine();
+    
     if (getInputTimeSmState() == DONE)
     {
         // add window!
         SendAddWindowMessage(
+            addWindowStartHour,
+            addWindowStartMin,
+            addWindowStartSec,
+            hourInput,
+            minuteInput,
+            secondInput);
+
+        menuState = INIT_MAIN;
+    }
+}
+
+void runDeleteInit(void)
+{
+
+    ESP_LOGI("MenuMgr","Init DELETE Page");
+    for (uint8_t i = 0; i < 7; i++)
+    {
+        SendClearMessage(i);
+    }
+    initGetTimeStateMachine();
+    SendPrintMessage("Delete Window", 0, 0 ,0);
+
+    SendPrintMessage("Enter Window", 0, 2 ,0);
+    SendPrintMessage("Start Time", 0, 3 ,0);
+    menuState = DELETE_START;
+}
+void runDeleteStart(void)
+{ 
+    runGetTimeStateMachine();
+    if (getInputTimeSmState() == DONE)
+    {
+        // save inputs from get time input state machine
+        addWindowStartHour = hourInput;
+        addWindowStartMin = minuteInput; 
+        addWindowStartSec = secondInput;
+
+        // prompt for window start time to screen
+        for (uint8_t i = 0; i < 7; i++)
+        {
+            SendClearMessage(i);
+        }
+        SendPrintMessage("Enter Window End", 0, 1 ,0);
+
+        // re-init get time state machine for getting window end time
+        initGetTimeStateMachine();
+        menuState = DELETE_END;
+    }
+}
+
+void runDeleteEnd(void)
+{
+    runGetTimeStateMachine();
+
+    if (getInputTimeSmState() == DONE)
+    {
+        // delete window!
+        sendDeleteWindowMessage(
             addWindowStartHour,
             addWindowStartMin,
             addWindowStartSec,
@@ -273,7 +367,7 @@ void SendAddWindowMessage(
         // window already passed today, add 24h to window start
 
         // this may look like it would cause an issue on the last day of the month
-        // but mktime() should normalize the day properly
+        // but mktime() should normalizes its inputs
         currTimeInfo.tm_mday++;   
     }
    
@@ -308,6 +402,57 @@ void SendAddWindowMessage(
     messageData.repeat = true;
 
     message.messageID = ADD_MESSAGE;
+    memcpy(&(message.data), &messageData, sizeof(messageData));
+
+    xQueueSend(MessageQueue,(void*) &message, (TickType_t) 0);
+}
+
+void sendDeleteWindowMessage(
+    uint8_t hourStart,
+    uint8_t minuteStart,
+    uint8_t secondStart,
+    uint8_t hourEnd,
+    uint8_t minuteEnd,
+    uint8_t secondEnd)
+{
+    time_t now;
+    struct tm currTimeInfo;
+    struct tm startTimeInfo;
+
+    // get time since epoch in seconds
+    time(&now);
+
+    // convert epoch time to calendar time
+    localtime_r(&now, &currTimeInfo);
+    int currHour = currTimeInfo.tm_hour;
+    int currMinute = currTimeInfo.tm_min;
+    int currSecond = currTimeInfo.tm_sec;
+
+    // if end of window is in the past
+    if ((hourEnd < currHour) ||
+        ((hourEnd == currHour) && (minuteEnd < currMinute)) ||
+        ((hourEnd == currHour) && (minuteEnd == currMinute) && (secondEnd <= currSecond)))
+    {
+        // window already passed today, add 24h to window start
+
+        // this may look like it would cause an issue on the last day of the month
+        // but mktime() normalizes its inputs
+        currTimeInfo.tm_mday++;   
+    }
+   
+    memcpy(&startTimeInfo, &currTimeInfo, sizeof(currTimeInfo));
+
+    startTimeInfo.tm_hour = hourStart;
+    startTimeInfo.tm_min = minuteStart;
+    startTimeInfo.tm_sec = secondStart;
+
+    time_t startTime = mktime(&startTimeInfo);
+
+    struct windowMessage message;
+    struct deleteMessageData messageData;
+    messageData.startTime = startTime;
+
+    message.messageID = DELETE_MESSAGE;
     memcpy(&(message.data), &messageData, sizeof(messageData));
 
     xQueueSend(MessageQueue,(void*) &message, (TickType_t) 0);

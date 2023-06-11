@@ -165,5 +165,5 @@ void printCurrentTimeSelection(timeUnit_t timeUnitToMask)
         default:
             break;
     }
-    SendPrintMessage(timeStr, 2, 3, 0);
+    SendPrintMessage(timeStr, 2, 5, 0);
 }
