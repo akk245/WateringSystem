@@ -66,10 +66,10 @@ void initMenuStateMachine()
     MainPage = (MenuPage_t) {
         .numSelections = 4,
         .Selections = {
-            {"1", 0, 0},
-            {"2", 0, 1},
-            {"3", 0, 2},
-            {"4", 0, 3}
+            {"Add A Window", 0, 0},
+            {"Delete A Window", 0, 1},
+            {"View Windows", 0, 2},
+            {"Set Clock", 0, 3}
         },
         .Exits = {
             INIT_ADD,
@@ -200,12 +200,12 @@ void runInitAdd(void)
         SendClearMessage(i);
     }
     initGetTimeStateMachine();
+    SendPrintMessage("Set Window Start", 0, 1 ,0);
     menuState = ADD_START;
 }
 
 void runAddStart(void)
 { 
-    // TODO prompt for window start time to screen
     runGetTimeStateMachine();
     if (getInputTimeSmState() == DONE)
     {
@@ -213,6 +213,10 @@ void runAddStart(void)
         addWindowStartHour = hourInput;
         addWindowStartMin = minuteInput; 
         addWindowStartSec = secondInput;
+
+        // prompt for window start time to screen
+        SendClearMessage(1);
+        SendPrintMessage("Set Window End", 0, 1 ,0);
 
         // re-init get time state machine for getting window end time
         initGetTimeStateMachine();
@@ -222,7 +226,7 @@ void runAddStart(void)
 
 void runAddEnd(void)
 {
-    // TODO - write prompt for window end time to screen
+
     runGetTimeStateMachine();
     if (getInputTimeSmState() == DONE)
     {
@@ -235,7 +239,7 @@ void runAddEnd(void)
             minuteInput,
             secondInput);
 
-        menuState = MAIN;
+        menuState = INIT_MAIN;
     }
 }
 
