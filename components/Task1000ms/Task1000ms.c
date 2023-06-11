@@ -1,6 +1,7 @@
 #include "Task1000ms.h"
 #include <string.h>
 #include "WindowManager.h"
+#include "DisplayClock.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
@@ -53,5 +54,6 @@ void Task1000msCode(void) {
         vTaskDelayUntil(&lastWakeTime, taskFrequency);
         
         executeWindowManager();
+        runDisplayClock();
     }
 }
