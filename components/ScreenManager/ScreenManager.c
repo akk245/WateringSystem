@@ -182,8 +182,12 @@ void write8x8bitmap(uint8_t * bitMap, uint8_t col, uint8_t line, bool invertedCo
 
     if (invertedColor)
     {
-        // TODO handle color inversion
-        // Use a for loop and 1's complement instead of memcpy
+        for (uint8_t bitMapCol = 0; bitMapCol < FRAME_BUF_COLS_PER_GRID_COL; bitMapCol++)
+        {
+            // use '~' the bitwise NOT operator
+            frameBuffer[line][col * FRAME_BUF_COLS_PER_GRID_COL + bitMapCol] = ~(*bitMap);
+            bitMap++;
+        }
     }
     else
     {
