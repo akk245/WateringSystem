@@ -152,7 +152,14 @@ bool isDigit(char charIn)
 
 void writeLetter(char alphaIn, uint8_t col, uint8_t line, bool invertedColor)
 {
-    //write8x8bitmap(letterBitmaps[alphaIn - 'a'], col, line, invertedColor);
+    if (alphaIn >= 'a')
+    {
+        write8x8bitmap(alphaBitmaps[alphaIn - 'a'], col, line, invertedColor);
+    }
+    else 
+    {
+        write8x8bitmap(alphaBitmaps[alphaIn - 'A'], col, line, invertedColor);
+    }
 }
 
 void writeDigit(char digitIn, uint8_t col, uint8_t line, bool invertedColor)

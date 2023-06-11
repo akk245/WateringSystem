@@ -1,19 +1,19 @@
-#include "Task50ms.h"
+#include "Task100ms.h"
 #include <string.h>
 #include "ScreenManager.h"
 #include "MenuManager.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#define TASK_50_MS_STACK_SIZE 4096
-#define TASK_50_MS_PRIORITY 4
+#define TASK_100_MS_STACK_SIZE 4096
+#define TASK_100_MS_PRIORITY 4
 #define INCLUDE_xTaskDelayUntil 1
 
-TaskHandle_t Task50msHandle;
+TaskHandle_t Task100msHandle;
 
-void Task50msCode(void);
+void Task100msCode(void);
 
-void init50msTask(void)
+void init100msTask(void)
 {
     initScreenManager();
     initMenuManager();
@@ -31,15 +31,15 @@ void init50msTask(void)
     xQueueSend(ScreenMessageQueue, &screenMsg, 0);
 
     // Create Task with 10ms period
-    xTaskCreate(Task50msCode,
-        "50ms_task", 
-        TASK_50_MS_STACK_SIZE,
+    xTaskCreate(Task100msCode,
+        "100ms_task", 
+        TASK_100_MS_STACK_SIZE,
         NULL,
-        TASK_50_MS_PRIORITY,
-        &Task50msHandle);
+        TASK_100_MS_PRIORITY,
+        &Task100msHandle);
 }
 
-void Task50msCode(void) {
+void Task100msCode(void) {
     TickType_t lastWakeTime;
     const TickType_t taskFrequency = 100 / portTICK_PERIOD_MS;
     
