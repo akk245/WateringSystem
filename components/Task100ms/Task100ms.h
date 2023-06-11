@@ -1,6 +1,6 @@
-#ifndef TASK_50_MS_H
-#define TASK_50_MS_H 
+#ifndef TASK_100_MS_H
+#define TASK_100_MS_H 
 
-void init50msTask(void);
+void init100msTask(void);
 
 #endif
