@@ -126,8 +126,6 @@ void updateTimeUnit(uint8_t * pUnitIn, uint8_t unitMax)
 
 void blinkCurrentTimeSelection(timeUnit_t timeUnitToBlink)
 {
-
-    ESP_LOGI("GetTimeSM", "binkDisplatchCounter: %i", blinkDispatchCounter);
     if (blinkDispatchCounter > (BLINK_PERIOD_IN_DISPATCH * 3 / 4))
     {
 

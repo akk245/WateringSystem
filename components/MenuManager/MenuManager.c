@@ -6,6 +6,7 @@
 #include "esp_log.h"
 #include "getTimeSM.h"
 #include <time.h>
+#include <sys/time.h>
 #include <string.h>
 #include <stdint.h>
 
@@ -20,7 +21,9 @@ typedef enum {
     DELETE_START,
     DELETE_END,
     VIEW,
-    SET_TIME} MenuState_t;
+    SET_TIME_INIT,
+    SET_TIME
+} MenuState_t;
 
 static MenuState_t menuState;
 static uint8_t currentSelection;
@@ -58,6 +61,8 @@ void runAddEnd(void);
 void runDeleteInit(void);
 void runDeleteStart(void);
 void runDeleteEnd(void);
+void runSetTimeInit(void);
+void runSetTime(void);
 void SendAddWindowMessage(
     uint8_t hourStart,
     uint8_t minuteStart,
@@ -74,6 +79,7 @@ void sendDeleteWindowMessage(
     uint8_t minuteEnd,
     uint8_t secondEnd
 );
+bool timeHasPassed(uint8_t hour, uint8_t min, uint8_t sec, struct tm currentTime);
 
 
 // function definitions
@@ -97,7 +103,7 @@ void initMenuStateMachine()
             ADD_INIT,
             DELETE_INIT,
             VIEW,
-            SET_TIME
+            SET_TIME_INIT
         }
     };
     
@@ -120,7 +126,7 @@ void runMenuManager(void)
 
 void runMenuStateMachine(void)
 {
-    ESP_LOGI("MenuManager","Running Menu State Machine");
+    //ESP_LOGI("MenuManager","Running Menu State Machine");
     switch (menuState) 
     {
         case INIT_MAIN:
@@ -147,8 +153,13 @@ void runMenuStateMachine(void)
             runDeleteEnd();
             break;
         case VIEW:
+            menuState = MAIN;
+            break;
+        case SET_TIME_INIT:
+            runSetTimeInit();
             break;
         case SET_TIME:
+            runSetTime();
             break;
         default:
             break;
@@ -282,7 +293,6 @@ void runAddEnd(void)
 
 void runDeleteInit(void)
 {
-
     ESP_LOGI("MenuMgr","Init DELETE Page");
     for (uint8_t i = 0; i < 7; i++)
     {
@@ -295,6 +305,7 @@ void runDeleteInit(void)
     SendPrintMessage("Start Time", 0, 3 ,0);
     menuState = DELETE_START;
 }
+
 void runDeleteStart(void)
 { 
     runGetTimeStateMachine();
@@ -336,6 +347,71 @@ void runDeleteEnd(void)
         menuState = INIT_MAIN;
     }
 }
+void runSetTimeInit(void)
+{    
+    ESP_LOGI("MenuMgr","Init SetTime Page");
+    for (uint8_t i = 0; i < 7; i++)
+    {
+        SendClearMessage(i);
+    }
+    initGetTimeStateMachine();
+    SendPrintMessage("Set Time", 0, 0 ,0);
+
+    SendPrintMessage("Enter New", 0, 2 ,0);
+    SendPrintMessage("System Time", 0, 3 ,0);
+    menuState = SET_TIME;
+}
+
+void runSetTime(void)
+{
+    runGetTimeStateMachine();
+
+    if (getInputTimeSmState() == DONE)
+    {
+        time_t now;
+        struct tm newTimeInfo;
+        struct tm currTimeInfo;
+        
+        // get time since epoch in seconds
+        time(&now);
+
+        // convert epoch time to calendar time
+        localtime_r(&now, &currTimeInfo);
+        int currHour = currTimeInfo.tm_hour;
+        int currMinute = currTimeInfo.tm_min;
+        int currSecond = currTimeInfo.tm_sec;
+    
+        if (timeHasPassed(hourInput, minuteInput, secondInput, currTimeInfo))
+        {
+            // if time has passed today, set time equal to the time next day
+            // essentially, we want to go forward to the requested time next day
+            // and not back in time to earlier today
+            currTimeInfo.tm_mday++;
+        }
+
+        currTimeInfo.tm_hour = hourInput;
+        currTimeInfo.tm_min = minuteInput;
+        currTimeInfo.tm_sec = secondInput;
+            
+        time_t newTime = mktime(&currTimeInfo);
+        
+        if (newTime == -1)
+        {
+            ESP_LOGI("MenuManager","Failed to Set New Time");
+            menuState = INIT_MAIN;
+            return;
+        }
+        
+        struct timeval newTimeTV;
+
+        newTimeTV.tv_sec = newTime;
+        newTimeTV.tv_usec = 0;
+
+        settimeofday(&newTimeTV, NULL);
+
+        menuState = INIT_MAIN;
+    }
+}
 
 void SendAddWindowMessage(
     uint8_t hourStart,
@@ -360,9 +436,7 @@ void SendAddWindowMessage(
     int currSecond = currTimeInfo.tm_sec;
 
     // if end of window is in the past
-    if ((hourEnd < currHour) ||
-        ((hourEnd == currHour) && (minuteEnd < currMinute)) ||
-        ((hourEnd == currHour) && (minuteEnd == currMinute) && (secondEnd <= currSecond)))
+    if (timeHasPassed(hourEnd, minuteEnd, secondEnd, currTimeInfo))
     {
         // window already passed today, add 24h to window start
 
@@ -429,9 +503,7 @@ void sendDeleteWindowMessage(
     int currSecond = currTimeInfo.tm_sec;
 
     // if end of window is in the past
-    if ((hourEnd < currHour) ||
-        ((hourEnd == currHour) && (minuteEnd < currMinute)) ||
-        ((hourEnd == currHour) && (minuteEnd == currMinute) && (secondEnd <= currSecond)))
+    if (timeHasPassed(hourEnd, minuteEnd, secondEnd, currTimeInfo))
     {
         // window already passed today, add 24h to window start
 
@@ -448,6 +520,10 @@ void sendDeleteWindowMessage(
 
     time_t startTime = mktime(&startTimeInfo);
 
+    if (startTime == -1)
+    {
+        ESP_LOGI("MenuManager", "Failed to create start time for delete");
+    }
     struct windowMessage message;
     struct deleteMessageData messageData;
     messageData.startTime = startTime;
@@ -456,4 +532,17 @@ void sendDeleteWindowMessage(
     memcpy(&(message.data), &messageData, sizeof(messageData));
 
     xQueueSend(MessageQueue,(void*) &message, (TickType_t) 0);
+}
+
+bool timeHasPassed(uint8_t hour, uint8_t min, uint8_t sec, struct tm currentTime)
+{
+    uint8_t currHour = currentTime.tm_hour;
+    uint8_t currMinute = currentTime.tm_min;
+    uint8_t currSecond = currentTime.tm_sec;
+
+    return (
+        (hour < currHour) ||
+        ((hour == currHour) && (min < currMinute)) ||
+        ((hour == currHour) && (min == currMinute) && (sec <= currSecond))
+    );
 }
