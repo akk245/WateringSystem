@@ -105,8 +105,6 @@ void runPumpStateMachine(Node **head)
     enum State{OFF, ON};
     static enum State state = OFF;
 
-    ESP_LOGI("WdwMgr","Running Pump State Machine");
-
     if (isEmpty(head))
     {
         ESP_LOGI("WdwMgr","Exiting Pump State Machine: No Windows");    
@@ -126,9 +124,21 @@ void runPumpStateMachine(Node **head)
     {
     case OFF:
         if(currentTime >= startTime){
-            gpio_set_level(PUMP_RELAY_GPIO, 1);
-            ESP_LOGI("WdwMgr","Turning Pump On");
-            state = ON;
+            if (currentTime >= endTime)
+            {
+                // fast forwarded through the window
+                // due to a system time update
+
+                // skip the window and requeue
+                pop(head);
+            }
+            else 
+            {
+                gpio_set_level(PUMP_RELAY_GPIO, 1);
+                ESP_LOGI("WdwMgr","Turning Pump On");
+                state = ON;
+            }
+            
         }
         break;
     case ON:
