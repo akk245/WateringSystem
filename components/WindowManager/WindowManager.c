@@ -6,7 +6,9 @@
 #include "esp_log.h"
 
 #define MAX_NUM_WINDOWS 10
-#define PUMP_RELAY_GPIO 23
+//#define PUMP_RELAY_GPIO 23
+#define PUMP_RELAY_GPIO 13
+
 
 QueueHandle_t MessageQueue;
 
