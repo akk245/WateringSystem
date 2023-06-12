@@ -19,20 +19,6 @@ void init1000msTask(void)
 {
     initWindowManager();
     
-    // ADD test message to queue
-    struct windowMessage testMessage;
-    struct addMessageData testMessageData;
-    testMessageData.startTime = 20;
-    testMessageData.endTime = 30;
-    testMessageData.repeat = true;
-
-    testMessage.messageID = ADD_MESSAGE;
-    memcpy(&(testMessage.data), &testMessageData, sizeof(testMessageData));
-
-    struct windowMessage *pxTestMessage = &testMessage;
-    xQueueSend(MessageQueue,(void*) &testMessage, (TickType_t) 0);
-
-    // Create Task with 1000ms period
     xTaskCreate(Task1000msCode,
         "1000ms_task", 
         TASK_1000_MS_STACK_SIZE,

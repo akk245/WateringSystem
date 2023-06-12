@@ -2,9 +2,9 @@
 #include "driver/gpio.h"
 #include "esp_log.h"
 
-#define UP_GPIO 32
+#define UP_GPIO 23
 #define DOWN_GPIO 22
-#define ENTER_GPIO 26
+#define ENTER_GPIO 21
 
 bool up_button_flag = false;
 bool down_button_flag = false;

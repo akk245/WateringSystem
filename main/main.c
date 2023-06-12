@@ -9,7 +9,7 @@
 #include "Task10ms.h"
 #include "ButtonManager.h"
 
-#define BLINK_GPIO 5
+#define BLINK_GPIO 2
 
 void app_main(void)
 {

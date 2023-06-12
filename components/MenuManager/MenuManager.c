@@ -263,7 +263,7 @@ void runAddStart(void)
         addWindowStartSec = secondInput;
 
         // prompt for window start time to screen
-        SendClearMessage(1);
+        SendClearMessage(2);
         SendPrintMessage("Set Window End", 0, 2 ,0);
 
         // re-init get time state machine for getting window end time
