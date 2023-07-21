@@ -126,7 +126,6 @@ void runMenuManager(void)
 
 void runMenuStateMachine(void)
 {
-    //ESP_LOGI("MenuManager","Running Menu State Machine");
     switch (menuState) 
     {
         case INIT_MAIN:
@@ -234,7 +233,6 @@ void runMain(void)
         pTmpSel = &MainPage.Selections[currentSelection];
         SendPrintMessage(pTmpSel->str, pTmpSel->startingCol, pTmpSel->line, 1);
     }
-    //ESP_LOGI("MenuManager","Main Menu Selection: %i", currentSelection);
 }
 
 void runAddInit(void)
