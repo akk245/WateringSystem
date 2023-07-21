@@ -128,7 +128,6 @@ void writeChar(char charIn, uint8_t col, uint8_t line, bool invertedColor)
                 break;
         }
     }
-    
 }
 
 bool isAlpha(char charIn)

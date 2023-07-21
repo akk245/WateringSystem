@@ -5,6 +5,7 @@
 #include "esp_log.h"
 #include <string.h>
 #include <stdio.h>
+#include <time.h>
 
 #define BLINK_PERIOD_IN_DISPATCH 10
 
@@ -29,9 +30,19 @@ void initGetTimeStateMachine(void)
     ESP_LOGI("GetTimeSM","Init Get Time SM");
  
     blinkDispatchCounter = 0;
-    hourInput = 0;
-    minuteInput = 0;
+    
+    time_t now;
+    struct tm currTimeInfo;
+
+    // get time since epoch in seconds
+    time(&now);
+
+    // convert epoch time to calendar time
+    localtime_r(&now, &currTimeInfo);
+    hourInput = currTimeInfo.tm_hour;
+    minuteInput = currTimeInfo.tm_min;
     secondInput = 0;
+
     inputTimeState = HOUR;
 
     printCurrentTimeSelection(NO_UNIT);
