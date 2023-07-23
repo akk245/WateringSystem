@@ -1,7 +1,9 @@
 #include "WindowManager.h"
+#include "WindowMgrMsgQueue.h"
 
+#include <string.h>
 #include "PriorityQueue.h"
-
+#include "MenuManagerMsgQueue.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
 
@@ -14,6 +16,10 @@ QueueHandle_t MessageQueue;
 
 bool processAddMessage(Node **head, char *data, char *numWindows);
 bool processDeleteMessage(Node **head, char* data, char *numWindows);
+bool processDisplayWindowsMessage(Node **head, char *numWindows);
+bool processDisplayWindowsMessage(Node **head, char *numWindows);
+void sendWindowsDataMessage(pqDump_t* dump);
+void sendInvalidRequestMessage(void);
 void runPumpStateMachine(Node **head);
 
 void initWindowManager (void) 
@@ -48,6 +54,10 @@ void executeWindowManager (void)
         else if(recievedMessage.messageID == DELETE_MESSAGE)
         {
             processDeleteMessage(&head, recievedMessage.data, &numWindows);
+        }
+        else if(recievedMessage.messageID == DISPLAY_WINDOWS_MESSAGE)
+        {
+            processDisplayWindowsMessage(&head, &numWindows);
         }
     }
     // run state machine
@@ -100,6 +110,42 @@ bool processDeleteMessage(Node **head, char* data, char *numWindows)
     }
     ESP_LOGI("WdwMgr","Delete Failed: no matching window");
     return false;
+}
+
+bool processDisplayWindowsMessage(Node **head, char *numWindows)
+{
+    if (*numWindows > 0)
+    {
+        // dump Priority Queue
+        pqDump_t dump = dumpPQ(head, *numWindows);
+
+        // send message to MenuManager with dump data
+        sendWindowsDataMessage(&dump);
+        return true;
+    }
+    else 
+    {
+        sendInvalidRequestMessage();
+        return false;
+    }
+}
+
+void sendWindowsDataMessage(pqDump_t* dump)
+{
+    struct MenuMessage message;
+
+    message.messageID = WINDOW_DATA_MESSAGE;
+    memcpy(&(message.data), dump, sizeof(pqDump_t));
+
+    xQueueSend(MenuMessageQueue,(void*) &message, (TickType_t) 0);
+}
+
+void sendInvalidRequestMessage(void)
+{
+    struct MenuMessage message;
+    message.messageID = INVALID_REQUEST_MESSAGE;
+
+    xQueueSend(MenuMessageQueue,(void*) &message, (TickType_t) 0);
 }
 
 void runPumpStateMachine(Node **head)

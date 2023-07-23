@@ -161,3 +161,31 @@ TEST_CASE("delete repeating node", "[Priority Queue]")
     TEST_ASSERT(isEmpty(&priorityQueue));
     TEST_ASSERT(priorityQueue == NULL);
 }
+
+TEST_CASE("dump 1 node", "[Priority Queue]")
+{
+    Node* priorityQueue = NULL;
+    push(&priorityQueue, (time_t) 100, (time_t) 110, 1);
+
+    pqDump_t dump = dumpPQ(&priorityQueue, 1);
+    TEST_ASSERT(dump.numWindows == 1);
+    TEST_ASSERT(dump.windows[0].startTime == 100);
+    TEST_ASSERT(dump.windows[0].endTime == 110);
+}
+
+TEST_CASE("dump 3 node", "[Priority Queue]")
+{
+    Node* priorityQueue = NULL;
+    push(&priorityQueue, (time_t) 100, (time_t) 110, 1);
+    push(&priorityQueue, (time_t) 150, (time_t) 200, 1);
+    push(&priorityQueue, (time_t) 1000, (time_t) 1060, 1);
+
+    pqDump_t dump = dumpPQ(&priorityQueue, 3);
+    TEST_ASSERT(dump.numWindows == 3);
+    TEST_ASSERT(dump.windows[0].startTime == 100);
+    TEST_ASSERT(dump.windows[0].endTime == 110);
+    TEST_ASSERT(dump.windows[1].startTime == 150);
+    TEST_ASSERT(dump.windows[1].endTime == 200);
+    TEST_ASSERT(dump.windows[2].startTime == 1000);
+    TEST_ASSERT(dump.windows[2].endTime == 1060);
+}
