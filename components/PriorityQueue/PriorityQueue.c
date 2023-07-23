@@ -125,3 +125,19 @@ Node* createNewNode(time_t startTime, time_t endTime, bool repeating)
 
     return tmp;
 }
+
+pqDump_t dumpPQ(Node** head, uint8_t numWindows)
+{
+    Node* nodePtr = *head;
+    pqDump_t dump;
+    
+    dump.numWindows = numWindows;
+
+    for (int i = 0; i < numWindows; ++i)
+    {
+        dump.windows[i].startTime = nodePtr->startTime;
+        dump.windows[i].endTime = nodePtr->endTime;
+        nodePtr = nodePtr->next;
+    }
+    return dump;
+}

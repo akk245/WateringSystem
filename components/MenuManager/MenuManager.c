@@ -1,16 +1,17 @@
 #include "MenuManager.h"
 #include "ButtonManager.h"
-#include "WindowManager.h"
+#include "WindowMgrMsgQueue.h"
+#include "MenuManagerMsgQueue.h"
 #include "MenuUtilities.h"
 #include "utilities.h"
 #include "esp_log.h"
+#include "PriorityQueue.h"
 #include "getTimeSM.h"
 #include <time.h>
 #include <sys/time.h>
 #include <string.h>
 #include <stdint.h>
 
-// TODO - add init states for other menus, then update exit table from main
 typedef enum {
     INIT_MAIN,
     MAIN,
@@ -21,12 +22,17 @@ typedef enum {
     DELETE_START,
     DELETE_END,
     VIEW,
+    VIEW_RESPONSE,
+    VIEW_INIT,
     SET_TIME_INIT,
     SET_TIME
 } MenuState_t;
 
 static MenuState_t menuState;
 static uint8_t currentSelection;
+static pqDump_t windowData;
+
+QueueHandle_t MenuMessageQueue;
 
 static uint8_t addWindowStartHour;
 static uint8_t addWindowStartMin;
@@ -61,6 +67,9 @@ void runAddEnd(void);
 void runDeleteInit(void);
 void runDeleteStart(void);
 void runDeleteEnd(void);
+void runViewInit(void);
+void runViewResponse(void);
+void runView(void);
 void runSetTimeInit(void);
 void runSetTime(void);
 void SendAddWindowMessage(
@@ -85,6 +94,8 @@ bool timeHasPassed(uint8_t hour, uint8_t min, uint8_t sec, struct tm currentTime
 // function definitions
 void initMenuManager(void)
 {
+    MenuMessageQueue = xQueueCreate(1, sizeof(struct MenuMessage));
+
     initMenuStateMachine();
 }
 
@@ -102,7 +113,7 @@ void initMenuStateMachine()
         .Exits = {
             ADD_INIT,
             DELETE_INIT,
-            VIEW,
+            VIEW_INIT,
             SET_TIME_INIT
         }
     };
@@ -151,8 +162,14 @@ void runMenuStateMachine(void)
         case DELETE_END:
             runDeleteEnd();
             break;
+        case VIEW_INIT:
+            runViewInit();
+            break;
+        case VIEW_RESPONSE:
+            runViewResponse();
+            break;    
         case VIEW:
-            menuState = MAIN;
+            runView();
             break;
         case SET_TIME_INIT:
             runSetTimeInit();
@@ -345,6 +362,128 @@ void runDeleteEnd(void)
         menuState = INIT_MAIN;
     }
 }
+
+void runViewInit(void)
+{
+    // clear screen
+    for (uint8_t i = 0; i < 7; i++)
+    {
+        SendClearMessage(i);
+    }
+
+    SendPrintMessage("Fetching Windows", 0, 1 ,0);
+
+    // send a dump message to window manager
+    struct windowMessage message;
+    message.messageID = DISPLAY_WINDOWS_MESSAGE;
+
+    xQueueSend(MessageQueue,(void*) &message, (TickType_t) 0);
+
+    menuState = VIEW_RESPONSE;
+}
+
+void runViewResponse(void)
+{
+    currentSelection = 0;
+
+    struct MenuMessage recievedMessage;
+
+    if (enter_button_flag)
+    {
+        enter_button_flag = 0;
+        menuState =  INIT_MAIN;
+        return;
+    }
+
+    if(xQueueReceive(MenuMessageQueue, &recievedMessage, 0))
+    {
+        menuState = VIEW;
+        // process messages
+        if(recievedMessage.messageID == WINDOW_DATA_MESSAGE)
+        {
+            ESP_LOGI("MenuMgr","Recieved WINDOW_DATA message");
+            memcpy(&windowData, &(recievedMessage.data), sizeof(pqDump_t));
+        }
+        else if(recievedMessage.messageID == INVALID_REQUEST_MESSAGE)
+        {
+            ESP_LOGI("MenuMgr","Recieved INVALID_REQUEST message");
+            windowData.numWindows = 0;
+        }
+    }
+}
+
+void runView(void)
+{
+    if (enter_button_flag)
+    {
+        enter_button_flag = 0;
+        menuState =  INIT_MAIN;
+        return;
+    }
+
+    if (windowData.numWindows > 0)
+    {
+        if (up_button_flag)
+        {
+            ESP_LOGI("MenuMgr","Up Button On View Windows Menu");
+            up_button_flag = 0;
+
+            currentSelection = decrWrapAround(currentSelection, windowData.numWindows);
+        } 
+        else if (down_button_flag)
+        {
+            down_button_flag = 0;
+            ESP_LOGI("MenuMgr","Down Button On View Windows Menu");
+
+            currentSelection = incrWrapAround(currentSelection, windowData.numWindows);
+        }
+
+        // clear screen
+        for (uint8_t i = 0; i < 7; i++)
+        {
+            SendClearMessage(i);
+        }
+
+
+        struct tm currTimeInfo;
+    
+        char * startTimeStr[15];
+        char * endTimeStr[15];
+
+        // convert start time from epoch to calendar time
+        localtime_r(&windowData.windows[currentSelection].startTime, &currTimeInfo);
+        int currHour = currTimeInfo.tm_hour;
+        int currMinute = currTimeInfo.tm_min;
+        int currSecond = currTimeInfo.tm_sec;
+
+        sprintf(startTimeStr, "%02u:%02u:%02u", currHour, currMinute, currSecond);
+        
+        
+        // convert end time from epoch to calendar time
+        localtime_r(&windowData.windows[currentSelection].endTime, &currTimeInfo);
+        currHour = currTimeInfo.tm_hour;
+        currMinute = currTimeInfo.tm_min;
+        currSecond = currTimeInfo.tm_sec;
+
+        sprintf(endTimeStr, "%02u:%02u:%02u", currHour, currMinute, currSecond);
+
+        char titleStr[16];
+        sprintf(titleStr,"Window %i",currentSelection + 1);
+
+        SendPrintMessage(titleStr, 0, 0, 1);
+        SendPrintMessage("Start Time:", 0, 1, 0);
+        SendPrintMessage(startTimeStr, 0, 2, 0);
+        SendPrintMessage("End Time:", 0, 3, 0);
+        SendPrintMessage(endTimeStr, 0, 4, 0);
+        SendPrintMessage("Press Enter", 0, 5, 1);
+        SendPrintMessage("To Return", 0, 6, 1);
+    }
+    else
+    {
+        SendPrintMessage("Zero Windows", 0, 3, 0);
+    }
+}
+
 void runSetTimeInit(void)
 {    
     ESP_LOGI("MenuMgr","Init SetTime Page");
