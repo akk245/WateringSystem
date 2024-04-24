@@ -15,6 +15,7 @@ typedef struct priorityNode {
 typedef struct window_t {
     time_t startTime;
     time_t endTime;
+    bool repeating;
 } window_t;
 
 typedef struct pqDump_t {
@@ -29,5 +30,6 @@ bool isEmpty(Node** head);
 bool delete(Node ** head, time_t startTime);
 Node* createNewNode(time_t startTime, time_t endTime,bool repeating);
 pqDump_t dumpPQ(Node** head, uint8_t numWindows);
+uint8_t populateFromDump(Node** head, pqDump_t dataIn);
 
 #endif
