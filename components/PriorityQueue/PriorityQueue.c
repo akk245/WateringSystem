@@ -126,18 +126,49 @@ Node* createNewNode(time_t startTime, time_t endTime, bool repeating)
     return tmp;
 }
 
-pqDump_t dumpPQ(Node** head, uint8_t numWindows)
+pqDump_t dumpPQ(Node** head, uint8_t maxWindowsToDump)
 {
     Node* nodePtr = *head;
     pqDump_t dump;
     
-    dump.numWindows = numWindows;
-
-    for (int i = 0; i < numWindows; ++i)
+    int windowsProcessed = 0;
+    while (nodePtr != NULL && windowsProcessed < maxWindowsToDump)
     {
-        dump.windows[i].startTime = nodePtr->startTime;
-        dump.windows[i].endTime = nodePtr->endTime;
+        dump.windows[windowsProcessed].startTime = nodePtr->startTime;
+        dump.windows[windowsProcessed].endTime = nodePtr->endTime;
         nodePtr = nodePtr->next;
+        windowsProcessed++;
     }
+
+    dump.numWindows = windowsProcessed;
+
     return dump;
+}
+
+// returns the number of windows added to the PQ
+uint8_t populateFromDump(Node** head, pqDump_t dataIn)
+{
+
+    if (!isEmpty(head))
+    {
+        // can only populate an empty queue
+        return 0;
+    }   
+
+    int windowsAdded = 0;
+
+    for (uint8_t windowIndex = 0; windowIndex < dataIn.numWindows; windowIndex++)
+    {
+        bool success = push(head, 
+            dataIn.windows[windowIndex].startTime,
+            dataIn.windows[windowIndex].endTime,
+            dataIn.windows[windowIndex].repeating);
+
+        if (success)
+        {
+            windowsAdded++;
+        }
+    }
+
+    return windowsAdded;
 }

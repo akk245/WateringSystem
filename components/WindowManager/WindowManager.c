@@ -6,13 +6,19 @@
 #include "MenuManagerMsgQueue.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
+#include "esp_system.h"
+#include "nvs_flash.h"
+#include "nvs.h"
 
 #define MAX_NUM_WINDOWS 10
 //#define PUMP_RELAY_GPIO 23
 #define PUMP_RELAY_GPIO 13
-
+#define STORAGE_NAMESPACE "storage"
 
 QueueHandle_t MessageQueue;
+
+static Node *head = NULL;
+static char numWindows = 0;
 
 bool processAddMessage(Node **head, char *data, char *numWindows);
 bool processDeleteMessage(Node **head, char* data, char *numWindows);
@@ -21,6 +27,8 @@ bool processDisplayWindowsMessage(Node **head, char *numWindows);
 void sendWindowsDataMessage(pqDump_t* dump);
 void sendInvalidRequestMessage(void);
 void runPumpStateMachine(Node **head);
+esp_err_t saveWindowsToFlash(pqDump_t* dump);
+esp_err_t readWindowsFromFlash(pqDump_t* dump);
 
 void initWindowManager (void) 
 {
@@ -36,12 +44,33 @@ void initWindowManager (void)
     time(&rawtime);
 
     ESP_LOGI("WdwMgr","Raw time at Window Manager Init: %li", (long int)rawtime);
+
+    esp_err_t status = nvs_flash_init();
+    if (status != ESP_OK)
+    {
+        ESP_LOGI("WdwMgr","Failed to initialize flash!");
+        return;
+    }
+
+    // try to read windows from flash
+    pqDump_t pqData;
+    status = readWindowsFromFlash(&pqData);
+   
+    if (status != ESP_OK)
+    {
+        ESP_LOGI("WdwMgr","Failed to read from flash!");
+        return;
+    }
+
+    numWindows = populateFromDump(&head, pqData);
+    if (numWindows != pqData.numWindows)
+    {
+        ESP_LOGI("WdwMgr","Failed to populate all windows from flash! Popu: %i, Flash: %i", numWindows, pqData.numWindows);
+        return;
+    }
 }
 void executeWindowManager (void)
 {
-    static Node *head = NULL;
-    static char numWindows = 0;
-
     // check queue for messages
     struct windowMessage recievedMessage;
     while(xQueueReceive(MessageQueue, &recievedMessage, 0))
@@ -49,16 +78,34 @@ void executeWindowManager (void)
         // process messages
         if(recievedMessage.messageID == ADD_MESSAGE)
         {
-            processAddMessage(&head, recievedMessage.data, &numWindows);
+            bool status = processAddMessage(&head, recievedMessage.data, &numWindows);
+            
+            //  If processing was sucessful, save new windows to flash
+            if (status)
+            {
+                // dump Priority Queue
+                pqDump_t pqData = dumpPQ(&head, numWindows);
+
+                saveWindowsToFlash(&pqData);
+            }
         }
         else if(recievedMessage.messageID == DELETE_MESSAGE)
         {
-            processDeleteMessage(&head, recievedMessage.data, &numWindows);
+            bool status = processDeleteMessage(&head, recievedMessage.data, &numWindows);
+            //  If processing was sucessful, save new windows to flash
+            if (status)
+            {
+                // dump Priority Queue
+                pqDump_t pqData = dumpPQ(&head, numWindows);
+
+                saveWindowsToFlash(&pqData);
+            }
         }
         else if(recievedMessage.messageID == DISPLAY_WINDOWS_MESSAGE)
         {
             processDisplayWindowsMessage(&head, &numWindows);
         }
+        // else drop message
     }
     // run state machine
     runPumpStateMachine(&head);
@@ -202,4 +249,59 @@ void runPumpStateMachine(Node **head)
     default:
         break;
     }
+}
+
+esp_err_t saveWindowsToFlash(pqDump_t* windows)
+{
+    nvs_handle_t nvs_handle;
+    esp_err_t status;
+
+    status = nvs_open(STORAGE_NAMESPACE, NVS_READWRITE, &nvs_handle);
+    if (status != ESP_OK)
+    {
+        return status;
+    }
+
+    status = nvs_set_blob(nvs_handle, "pqSave", windows, sizeof(pqDump_t));
+    if (status != ESP_OK)
+    {
+        nvs_close(nvs_handle);
+        return status;
+    }
+
+    status = nvs_commit(nvs_handle);
+    if (status != ESP_OK)
+    {
+        nvs_close(nvs_handle);
+        return status;
+    }
+
+    nvs_close(nvs_handle);
+    return status;
+}
+
+esp_err_t readWindowsFromFlash(pqDump_t* windowsOut)
+{
+    nvs_handle_t nvs_handle;
+    esp_err_t status;
+
+    status = nvs_open(STORAGE_NAMESPACE, NVS_READONLY, &nvs_handle);
+    
+    if (status != ESP_OK)
+    {
+        return status;
+    }
+
+    size_t size = sizeof(pqDump_t);
+    status = nvs_get_blob(nvs_handle, "pqSave", windowsOut, &size);
+
+    if (status != ESP_OK)
+    {
+        nvs_close(nvs_handle);
+        return status;
+    }
+
+    nvs_close(nvs_handle);
+    
+    return status;
 }

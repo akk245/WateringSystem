@@ -12,6 +12,9 @@
 #include <string.h>
 #include <stdint.h>
 
+#define INVERT_COLOR 1
+#define NO_INVERT_COLOR 0
+
 typedef enum {
     INIT_MAIN,
     MAIN,
@@ -196,14 +199,14 @@ void runInitMain(void)
 
     // printout default selection with inverted colors
     Selection_t * pTmpSel = &MainPage.Selections[0];    
-    SendPrintMessage(pTmpSel->str, pTmpSel->startingCol, pTmpSel->line, 1);
+    SendPrintMessage(pTmpSel->str, pTmpSel->startingCol, pTmpSel->line, INVERT_COLOR);
     
     // printout other selections
     for (uint8_t sel = 1; sel < MainPage.numSelections; sel++)
     {
         SendClearMessage(sel);
         Selection_t * pTmpSel = &MainPage.Selections[sel];
-        SendPrintMessage(pTmpSel->str, pTmpSel->startingCol, pTmpSel->line, 0);
+        SendPrintMessage(pTmpSel->str, pTmpSel->startingCol, pTmpSel->line, NO_INVERT_COLOR);
     }
 
     // exit to MAIN state
@@ -226,13 +229,13 @@ void runMain(void)
 
         // re-print old selection without inverse color    
         Selection_t * pTmpSel = &MainPage.Selections[currentSelection];
-        SendPrintMessage(pTmpSel->str, pTmpSel->startingCol, pTmpSel->line, 0);
+        SendPrintMessage(pTmpSel->str, pTmpSel->startingCol, pTmpSel->line, NO_INVERT_COLOR);
         
         currentSelection = decrWrapAround(currentSelection, MainPage.numSelections);
 
         // print new selection with inverse color
         pTmpSel = &MainPage.Selections[currentSelection];
-        SendPrintMessage(pTmpSel->str, pTmpSel->startingCol, pTmpSel->line, 1);
+        SendPrintMessage(pTmpSel->str, pTmpSel->startingCol, pTmpSel->line, INVERT_COLOR);
 
     } 
     else if (down_button_flag)
@@ -242,13 +245,13 @@ void runMain(void)
 
         // re-print old selection without inverse color    
         Selection_t * pTmpSel = &MainPage.Selections[currentSelection];
-        SendPrintMessage(pTmpSel->str, pTmpSel->startingCol, pTmpSel->line, 0);
+        SendPrintMessage(pTmpSel->str, pTmpSel->startingCol, pTmpSel->line, NO_INVERT_COLOR);
         
         currentSelection = incrWrapAround(currentSelection, MainPage.numSelections);
 
         // print new selection with inverse color
         pTmpSel = &MainPage.Selections[currentSelection];
-        SendPrintMessage(pTmpSel->str, pTmpSel->startingCol, pTmpSel->line, 1);
+        SendPrintMessage(pTmpSel->str, pTmpSel->startingCol, pTmpSel->line, INVERT_COLOR);
     }
 }
 
@@ -261,9 +264,9 @@ void runAddInit(void)
         SendClearMessage(i);
     }
     initGetTimeStateMachine();
-    SendPrintMessage("Add New Window", 0, 0 ,0);
+    SendPrintMessage("Add New Window", 0, 0, NO_INVERT_COLOR);
 
-    SendPrintMessage("Set Window Start", 0, 2 ,0);
+    SendPrintMessage("Set Window Start", 0, 2, NO_INVERT_COLOR);
     menuState = ADD_START;
 }
 
@@ -279,7 +282,7 @@ void runAddStart(void)
 
         // prompt for window start time to screen
         SendClearMessage(2);
-        SendPrintMessage("Set Window End", 0, 2 ,0);
+        SendPrintMessage("Set Window End", 0, 2, NO_INVERT_COLOR);
 
         // re-init get time state machine for getting window end time
         initGetTimeStateMachine();
@@ -314,10 +317,10 @@ void runDeleteInit(void)
         SendClearMessage(i);
     }
     initGetTimeStateMachine();
-    SendPrintMessage("Delete Window", 0, 0 ,0);
+    SendPrintMessage("Delete Window", 0, 0, NO_INVERT_COLOR);
 
-    SendPrintMessage("Enter Window", 0, 2 ,0);
-    SendPrintMessage("Start Time", 0, 3 ,0);
+    SendPrintMessage("Enter Window", 0, 2, NO_INVERT_COLOR);
+    SendPrintMessage("Start Time", 0, 3, NO_INVERT_COLOR);
     menuState = DELETE_START;
 }
 
@@ -336,7 +339,7 @@ void runDeleteStart(void)
         {
             SendClearMessage(i);
         }
-        SendPrintMessage("Enter Window End", 0, 1 ,0);
+        SendPrintMessage("Enter Window End", 0, 1, NO_INVERT_COLOR);
 
         // re-init get time state machine for getting window end time
         initGetTimeStateMachine();
@@ -371,7 +374,7 @@ void runViewInit(void)
         SendClearMessage(i);
     }
 
-    SendPrintMessage("Fetching Windows", 0, 1 ,0);
+    SendPrintMessage("Fetching Windows", 0, 1, NO_INVERT_COLOR);
 
     // send a dump message to window manager
     struct windowMessage message;
@@ -467,20 +470,20 @@ void runView(void)
 
         sprintf(endTimeStr, "%02u:%02u:%02u", currHour, currMinute, currSecond);
 
-        char titleStr[16];
-        sprintf(titleStr,"Window %i",currentSelection + 1);
+        char titleStr[18];
+        sprintf(titleStr,"Window %i of %i",(short)currentSelection + 1, (short)windowData.numWindows);
 
-        SendPrintMessage(titleStr, 0, 0, 1);
-        SendPrintMessage("Start Time:", 0, 1, 0);
-        SendPrintMessage(startTimeStr, 0, 2, 0);
-        SendPrintMessage("End Time:", 0, 3, 0);
-        SendPrintMessage(endTimeStr, 0, 4, 0);
-        SendPrintMessage("Press Enter", 0, 5, 1);
-        SendPrintMessage("To Return", 0, 6, 1);
+        SendPrintMessage(titleStr, 0, 0, INVERT_COLOR);
+        SendPrintMessage("Start Time:", 0, 1, NO_INVERT_COLOR);
+        SendPrintMessage(startTimeStr, 0, 2, NO_INVERT_COLOR);
+        SendPrintMessage("End Time:", 0, 3, NO_INVERT_COLOR);
+        SendPrintMessage(endTimeStr, 0, 4, NO_INVERT_COLOR);
+        SendPrintMessage("Press Enter", 0, 5, INVERT_COLOR);
+        SendPrintMessage("To Return", 0, 6, INVERT_COLOR);
     }
     else
     {
-        SendPrintMessage("Zero Windows", 0, 3, 0);
+        SendPrintMessage("Zero Windows", 0, 3, NO_INVERT_COLOR);
     }
 }
 
@@ -492,10 +495,10 @@ void runSetTimeInit(void)
         SendClearMessage(i);
     }
     initGetTimeStateMachine();
-    SendPrintMessage("Set Time", 0, 0 ,0);
+    SendPrintMessage("Set Time", 0, 0, NO_INVERT_COLOR);
 
-    SendPrintMessage("Enter New", 0, 2 ,0);
-    SendPrintMessage("System Time", 0, 3 ,0);
+    SendPrintMessage("Enter New", 0, 2, NO_INVERT_COLOR);
+    SendPrintMessage("System Time", 0, 3, NO_INVERT_COLOR);
     menuState = SET_TIME;
 }
 
